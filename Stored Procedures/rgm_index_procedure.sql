@@ -1,9 +1,7 @@
 use platformdb1;
-
 DROP PROCEDURE IF EXISTS rgm_index;
 
 DELIMITER $$
-
 CREATE PROCEDURE rgm_index()
 Begin
 	drop table if exists TempResults;
@@ -24,10 +22,4 @@ Begin
     
 	DROP TEMPORARY TABLE IF EXISTS TempResults;
 END $$
-
 DELIMITER ;
-
-
-call rgm_index();
-
-select count(*) from category;
