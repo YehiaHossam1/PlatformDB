@@ -9,4 +9,4 @@ call rgm_index();
 
 # Market Procedures
 call UpdateRegionSalesGrowth();
-call UpdateMarketShare();
+-- call UpdateMarketShare();
