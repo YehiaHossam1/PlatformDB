@@ -8,6 +8,9 @@ ADD COLUMN brand_value_idx_avmv DECIMAL(10, 4);
 ALTER TABLE brand
 ADD COLUMN brand_value_idx_ly DECIMAL(10, 4);
 
+alter table brand 
+add column rgm_index decimal(10,2);
+
 DELIMITER $$
 CREATE PROCEDURE UpdateBrandValueIdxAVMV()
 BEGIN
@@ -72,5 +75,29 @@ BEGIN
 END $$
 DELIMITER ;
 
+
+DELIMITER $$
+create procedure rgm_index_for_brand ()
+BEGIN
+	drop TEMPORARY table if exists brand_shares;
+    create TEMPORARY table brand_shares(
+	select brand_id,
+		case when volume_share = 0 Then 0
+        else value_share/volume_share end  as rgm_index
+	from (
+	select brand_id,sum(value_sales)/(Select sum(value_sales) from rawdata) value_share
+	,sum(volume_sales)/(Select sum(volume_sales) from rawdata) as volume_share
+	From rawdata
+	group by brand_id) shares);
+
+update brand b
+JOIN  brand_shares bs ON bs.brand_id = b.brand_id
+SET b.rgm_index = bs.rgm_index;
+
+DROP TEMPORARY TABLE IF EXISTS brand_shares;
+End $$
+DELIMITER ;
+
 call UpdateBrandValueIdxAVMV();
 call UpdateBrandValueIdxLY();
+call rgm_index()

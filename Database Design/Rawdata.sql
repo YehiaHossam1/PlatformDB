@@ -4,7 +4,7 @@ use platformdb1;
 CREATE TABLE RawData (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     sku_id INT,
-    date_id INT,
+    date INT,
     size_bracket_id INT,
     category_id INT,
     reigon_id INT,
@@ -13,7 +13,6 @@ CREATE TABLE RawData (
     volume_sales DECIMAL(10, 2),
     WOD DECIMAL(10, 2),
     FOREIGN KEY (sku_id) REFERENCES SKU(sku_id),
-    FOREIGN KEY (date_id) REFERENCES Dates(date_id),
     FOREIGN KEY (size_bracket_id) REFERENCES sizebracket(size_bracket_id),
     FOREIGN KEY (category_id) REFERENCES category(category_id),
     FOREIGN KEY (reigon_id) REFERENCES reigon(reigon_id),
@@ -28,4 +27,3 @@ ON RawData(Id);
 -- TRUNCATE TABLE Category;
 -- ALTER TABLE rawdata ADD CONSTRAINT rawdata_ibfk_4 FOREIGN KEY (category_id) REFERENCES Category(Category_id);
 
-truncate table Rawdata;
