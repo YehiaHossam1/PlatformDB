@@ -8,26 +8,45 @@ ADD COLUMN brand_value_idx_avmv DECIMAL(10, 4);
 ALTER TABLE brand
 ADD COLUMN brand_value_idx_ly DECIMAL(10, 4);
 
+# adding rgm_index_value
 alter table brand 
 add column rgm_index decimal(10,2);
 
+
+# adding value_sales_last_year 
+alter table brand 
+add column value_sales_last_year decimal(10,2);
+
+# adding value_sales_this_year 
+alter table brand 
+add column value_sales_this_year decimal(10,2);
+
+drop PROCEDURE if exists UpdateBrandValueIdxAVMV;
 DELIMITER $$
-CREATE PROCEDURE UpdateBrandValueIdxAVMV()
+CREATE PROCEDURE UpdateBrandValueIdxAVMV(
+	IN filterRegion VARCHAR(50),
+    IN filterSegment VARCHAR(50),
+    IN filterSku VARCHAR(50),
+    IN filterBrand VARCHAR(50),
+    IN filterSizebracket VARCHAR(50)
+)
 BEGIN
     -- Step 1: Create a temporary table to calculate average market sales for each brand
+    
+    call PrepareFilteredData(filterRegion, filterSegment, filterSku, filterBrand, filterSizebracket);
     CREATE TEMPORARY TABLE TempAvgMarketSales AS
     SELECT 
         r.brand_id, 
         AVG(r.value_sales) AS avg_market_sales
     FROM 
-        RAWDATA r
+        TempFilteredData r
     GROUP BY 
         r.brand_id;
 
     -- Step 2: Calculate the overall average market sales (denominator)
     SET @overall_avg_market_sales = (
         SELECT AVG(r.value_sales)
-        FROM RAWDATA r
+        FROM TempFilteredData r
     );
 
     -- Step 3: Update the brand table with the calculated brand_value_idx_avmv
@@ -40,38 +59,51 @@ BEGIN
 END $$
 DELIMITER ;
 
+drop PROCEDURE UpdateBrandValueIdxLY;
 DELIMITER $$
-CREATE PROCEDURE UpdateBrandValueIdxLY()
+CREATE PROCEDURE UpdateBrandValueIdxLY(
+    IN InputYear YEAR,
+    IN filterRegion VARCHAR(50),
+    IN filterSegment VARCHAR(50),
+    IN filterSku VARCHAR(50),
+    IN filterBrand VARCHAR(50),
+    IN filterSizebracket VARCHAR(50)
+)
 BEGIN
-    -- Step 1: Create a temporary table to calculate last year's and this year's sales for each brand
-    CREATE TEMPORARY TABLE TempLastYearSales AS
-    WITH cte1 AS (
-        SELECT
-            r.brand_id, 
-            SUM(CASE WHEN d.year = YEAR(CURDATE()) - 1 THEN r.value_sales ELSE 0 END) AS last_year_sales,
-            SUM(CASE WHEN d.year = YEAR(CURDATE()) THEN r.value_sales ELSE 0 END) AS this_year_sales
-        FROM 
-            RAWDATA r
-        INNER JOIN dates d ON r.date_id = d.date_id
-        GROUP BY 
-            r.brand_id
-    )
+    -- Step 1: Prepare the filtered data
+    CALL PrepareFilteredData(filterRegion, filterSegment, filterSku, filterBrand, filterSizebracket);
+
+    -- Step 2: Create a temporary table to hold the calculated values
+    CREATE TEMPORARY TABLE TempBrandValueIndex (
+        brand_id INT,
+        value_sales_last_year DECIMAL(10, 2),
+        value_sales_this_year DECIMAL(10, 2),
+        brand_value_idx_ly DECIMAL(10, 4)
+    );
+
+    -- Step 3: Insert data into TempBrandValueIndex from the filtered data
+    INSERT INTO TempBrandValueIndex (brand_id, value_sales_last_year, value_sales_this_year, brand_value_idx_ly)
     SELECT 
-        brand_id,
-        CASE 
-            WHEN last_year_sales = 0 THEN 0
-            ELSE this_year_sales / last_year_sales 
+        t.brand_id, 
+        SUM(CASE WHEN YEAR(t.date) = InputYear - 1 THEN t.value_sales ELSE 0 END) AS value_sales_last_year,
+        SUM(CASE WHEN YEAR(t.date) = InputYear THEN t.value_sales ELSE 0 END) AS value_sales_this_year,
+        CASE WHEN SUM(CASE WHEN YEAR(t.date) = InputYear - 1 THEN t.value_sales ELSE 0 END) = 0 THEN NULL ELSE 
+             SUM(CASE WHEN YEAR(t.date) = InputYear THEN t.value_sales ELSE 0 END) / 
+             NULLIF(SUM(CASE WHEN YEAR(t.date) = InputYear - 1 THEN t.value_sales ELSE 0 END), 0) 
         END AS brand_value_idx_ly
-    FROM 
-        cte1;
+    FROM TempFilteredData t
+    GROUP BY t.brand_id;
 
-    -- Step 2: Update the brand table with the calculated brand_value_idx_ly
+    -- Step 4: Update the brand table with the calculated values
     UPDATE brand b
-    JOIN TempLastYearSales t ON b.brand_id = t.brand_id
-    SET b.brand_value_idx_ly = t.brand_value_idx_ly;
-
-    -- Step 3: Drop the temporary table to clean up
-    DROP TEMPORARY TABLE IF EXISTS TempLastYearSales;
+    JOIN TempBrandValueIndex t ON b.brand_id = t.brand_id
+    SET b.value_sales_last_year = t.value_sales_last_year,
+        b.value_sales_this_year = t.value_sales_this_year,
+        b.brand_value_idx_ly = t.brand_value_idx_ly;
+    
+    -- Step 6: Drop the temporary tables to clean up
+    DROP TEMPORARY TABLE IF EXISTS TempBrandValueIndex;
+    DROP TEMPORARY TABLE IF EXISTS TempFilteredData;
 END $$
 DELIMITER ;
 
@@ -98,6 +130,12 @@ DROP TEMPORARY TABLE IF EXISTS brand_shares;
 End $$
 DELIMITER ;
 
-call UpdateBrandValueIdxAVMV();
-call UpdateBrandValueIdxLY();
-call rgm_index()
+
+call UpdateBrandValueIdxAVMV(NULL,Null, NULL, NULL,NULL);
+call UpdateBrandValueIdxLY(2023,NULL,Null, NULL, NULL,NULL);
+call rgm_index();
+select * from brand;
+
+
+
+select * from rawdata;

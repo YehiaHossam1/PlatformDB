@@ -4,7 +4,7 @@ Use platformdb1;
 call UpdateBrandValueIdxAVMV();
 call UpdateBrandValueIdxLY();
 
-call CalcualteValueVolumeShare();
+-- call CalcualteValueVolumeShare(''); 
 # Dashboard Procedures
 call rgm_index();
 
