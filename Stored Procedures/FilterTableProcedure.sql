@@ -48,5 +48,3 @@ DELIMITER ;
 
 # Filter by reigon,segment,sku,brand,size_bracket
 call PrepareFilteredData(Null, Null, Null, Null, Null);
-
-

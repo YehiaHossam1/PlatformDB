@@ -1,0 +1,7 @@
+Use platformdb1;
+DROP TABLE IF EXISTS Sector;
+
+CREATE TABLE Sector (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    sector_name VARCHAR(255) NOT NULL
+);

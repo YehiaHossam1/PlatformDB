@@ -19,6 +19,15 @@ CREATE TABLE RawData (
     FOREIGN KEY (brand_id) REFERENCES Brand(brand_id)
 );
 
+alter table rawdata add column sector_id Int;
+alter table rawdata add column channel_id Int;
+alter table rawdata add column category_id Int;
+alter table rawdata add column market_id Int;
+
+ALTER TABLE rawdata ADD CONSTRAINT rawdata_ibfk_2 FOREIGN KEY (sector_id) REFERENCES sector(id);
+ALTER TABLE rawdata ADD CONSTRAINT rawdata_ibfk_4 FOREIGN KEY (channel_id) REFERENCES channel(id);
+ALTER TABLE rawdata ADD CONSTRAINT rawdata_ibfk_8 FOREIGN KEY (market_id) REFERENCES market(id);
+ALTER TABLE rawdata ADD CONSTRAINT rawdata_ibfk_9 FOREIGN KEY (category_id) REFERENCES category(id);
 
 CREATE INDEX RawData
 ON RawData(Id);
